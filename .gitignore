@@ -1,5 +1,4 @@
 venv
 Math_model/
-data/
-data.rar
-fig_data/
+*.pkl
+*.rar
