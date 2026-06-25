@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Interactive visualization of gossip spreading through social networks."
+    />
+    <title>Gossip Lab — Interactive Simulation</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Gossip Lab home">
+          <span class="brand-mark" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </span>
+          <span>
+            <strong>GOSSIP LAB</strong>
+            <small>Network diffusion simulator</small>
+          </span>
+        </a>
+        <div class="topbar-note">
+          <span class="live-dot"></span>
+          Interactive model
+        </div>
+      </header>
+
+      <main>
+        <section class="hero">
+          <div>
+            <p class="eyebrow">RUMOR DYNAMICS / 01</p>
+            <h1>Watch a whisper<br />become a <em>wave.</em></h1>
+          </div>
+          <p class="hero-copy">
+            Pick a focal person, choose who starts the rumor, then watch it travel
+            through their social neighborhood one round at a time.
+          </p>
+        </section>
+
+        <section class="workspace">
+          <aside class="control-panel" aria-label="Simulation controls">
+            <div class="panel-heading">
+              <span>Experiment setup</span>
+              <span class="panel-index">A</span>
+            </div>
+
+            <label class="field">
+              <span>Network model</span>
+              <select id="network-model">
+                <option value="small-world">Small-world</option>
+                <option value="scale-free">Scale-free</option>
+                <option value="school">School community 01</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>People <output id="node-count-output">42</output></span>
+              <input
+                id="node-count"
+                type="range"
+                min="18"
+                max="84"
+                step="1"
+                value="42"
+              />
+            </label>
+
+            <label class="field">
+              <span>Rumor range</span>
+              <select id="hop-count">
+                <option value="1">1 hop · direct circle</option>
+                <option value="2" selected>2 hops · friends of friends</option>
+                <option value="3">3 hops · wider community</option>
+                <option value="0">Global · whole network</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>
+                Share probability
+                <output id="probability-output">72%</output>
+              </span>
+              <input
+                id="probability"
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value="72"
+              />
+            </label>
+
+            <div class="two-column">
+              <label class="field">
+                <span>Focal person</span>
+                <select id="victim-select"></select>
+              </label>
+              <label class="field">
+                <span>Originator</span>
+                <select id="originator-select"></select>
+              </label>
+            </div>
+
+            <label class="field">
+              <span>Random seed</span>
+              <input id="seed" type="number" min="1" max="99999" value="2026" />
+            </label>
+
+            <button id="regenerate-button" class="secondary-button" type="button">
+              <span aria-hidden="true">↻</span>
+              Generate network
+            </button>
+
+            <div class="control-note">
+              <span>TIP</span>
+              Click a node to make it the focal person. Click one of its neighbors
+              to choose the originator.
+            </div>
+          </aside>
+
+          <section class="visual-panel" aria-label="Network visualization">
+            <div class="visual-toolbar">
+              <div>
+                <p class="toolbar-label">Live network</p>
+                <h2 id="network-title">Small-world network</h2>
+              </div>
+              <div class="round-badge">
+                <span>ROUND</span>
+                <strong id="round-value">00</strong>
+              </div>
+            </div>
+
+            <div class="legend" aria-label="Node legend">
+              <span><i class="legend-dot victim"></i>Focal person</span>
+              <span><i class="legend-dot originator"></i>Originator</span>
+              <span><i class="legend-dot reached"></i>Heard rumor</span>
+              <span><i class="legend-dot eligible"></i>Not reached</span>
+            </div>
+
+            <div class="graph-stage">
+              <svg
+                id="network-graph"
+                viewBox="0 0 900 580"
+                role="img"
+                aria-labelledby="graph-title graph-description"
+              >
+                <title id="graph-title">Gossip spreading network</title>
+                <desc id="graph-description">
+                  An interactive social graph showing how a rumor spreads between
+                  connected people.
+                </desc>
+                <g id="scope-rings"></g>
+                <g id="edges"></g>
+                <g id="nodes"></g>
+              </svg>
+              <div id="graph-message" class="graph-message" hidden></div>
+            </div>
+
+            <div class="playback">
+              <button id="reset-button" class="icon-button" type="button" aria-label="Reset">
+                ↶
+              </button>
+              <button id="step-button" class="step-button" type="button">
+                Step one round
+              </button>
+              <button id="play-button" class="play-button" type="button">
+                <span class="play-icon" aria-hidden="true">▶</span>
+                <span id="play-label">Run simulation</span>
+              </button>
+              <label class="speed-control">
+                <span>Speed</span>
+                <input
+                  id="speed"
+                  type="range"
+                  min="220"
+                  max="1400"
+                  step="20"
+                  value="760"
+                  aria-label="Playback speed"
+                />
+              </label>
+            </div>
+          </section>
+
+          <aside class="insights-panel" aria-label="Simulation results">
+            <div class="panel-heading">
+              <span>Live results</span>
+              <span class="panel-index">B</span>
+            </div>
+
+            <article class="metric-card metric-primary">
+              <div class="metric-label">
+                <span>Spread factor</span>
+                <span title="Share of the focal person's friends who heard the rumor">?</span>
+              </div>
+              <strong id="spread-factor">0%</strong>
+              <div class="meter"><span id="spread-meter"></span></div>
+              <p id="spread-detail">0 of 0 direct friends reached</p>
+            </article>
+
+            <div class="metric-grid">
+              <article class="metric-card">
+                <div class="metric-label">Total reach</div>
+                <strong id="total-reach">0%</strong>
+                <p id="reach-detail">0 people</p>
+              </article>
+              <article class="metric-card">
+                <div class="metric-label">Spread time</div>
+                <strong id="spread-time">0</strong>
+                <p>rounds to last friend</p>
+              </article>
+            </div>
+
+            <article class="chart-card">
+              <div class="chart-heading">
+                <div>
+                  <span>Diffusion curve</span>
+                  <small>Cumulative people reached</small>
+                </div>
+                <strong id="curve-total">0</strong>
+              </div>
+              <svg id="diffusion-chart" viewBox="0 0 300 132" role="img">
+                <title>Rumor diffusion over simulation rounds</title>
+                <g id="chart-grid"></g>
+                <path id="chart-area"></path>
+                <path id="chart-line"></path>
+                <g id="chart-points"></g>
+              </svg>
+            </article>
+
+            <article class="event-card">
+              <div class="event-heading">
+                <span>Activity</span>
+                <span id="simulation-status" class="status-pill">Ready</span>
+              </div>
+              <ol id="event-log" class="event-log"></ol>
+            </article>
+          </aside>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./app.mjs"></script>
+  </body>
+</html>
