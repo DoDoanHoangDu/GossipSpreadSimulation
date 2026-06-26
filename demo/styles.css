@@ -243,6 +243,10 @@ h1 em {
   margin-bottom: 20px;
 }
 
+.field[hidden] {
+  display: none;
+}
+
 .field > span {
   display: flex;
   align-items: center;
@@ -385,6 +389,34 @@ input[type="range"]::-webkit-slider-thumb {
 
 .toolbar-label {
   margin-bottom: 6px;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.autoplay-toggle {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  color: var(--acid);
+  border: 1px solid rgb(213 255 64 / 28%);
+  border-radius: 999px;
+  background: rgb(213 255 64 / 6%);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.autoplay-toggle input {
+  width: 11px;
+  height: 11px;
+  margin: 0;
+  accent-color: var(--acid);
 }
 
 .round-badge {
@@ -945,6 +977,16 @@ input[type="range"]::-webkit-slider-thumb {
   .step-button,
   .speed-control {
     display: none;
+  }
+
+  .visual-toolbar,
+  .toolbar-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .toolbar-actions {
+    gap: 10px;
   }
 
   .playback {

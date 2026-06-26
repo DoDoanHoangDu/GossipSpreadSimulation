@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  createApollonianGraph,
+  createErdosRenyiGraph,
   createGraph,
   createSeededRandom,
   createSmallWorldGraph,
@@ -82,4 +84,24 @@ test("seeded small-world generation is reproducible", () => {
   const secondGraph = createSmallWorldGraph(24, 4, 0.2, createSeededRandom(42));
 
   assert.deepEqual(graphEdges(firstGraph), graphEdges(secondGraph));
+});
+
+test("Apollonian generation adds each new node to one triangular face", () => {
+  const graph = createApollonianGraph(18);
+
+  assert.equal(graph.size, 18);
+  assert.equal(graphEdges(graph).length, 48);
+});
+
+test("Erdős–Rényi generation supports seeded random graphs", () => {
+  const firstGraph = createErdosRenyiGraph(24, 0.12, createSeededRandom(42));
+  const secondGraph = createErdosRenyiGraph(24, 0.12, createSeededRandom(42));
+
+  assert.deepEqual(graphEdges(firstGraph), graphEdges(secondGraph));
+});
+
+test("Erdős–Rényi generation with probability one creates a complete graph", () => {
+  const graph = createErdosRenyiGraph(6, 1, createSeededRandom(42));
+
+  assert.equal(graphEdges(graph).length, 15);
 });

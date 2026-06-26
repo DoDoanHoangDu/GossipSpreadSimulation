@@ -99,6 +99,56 @@ export function createScaleFreeGraph(
   return graph;
 }
 
+export function createApollonianGraph(nodeCount) {
+  const totalNodes = Math.max(3, Math.floor(nodeCount));
+  const graph = createGraph([1, 2, 3], [
+    [1, 2],
+    [2, 3],
+    [3, 1],
+  ]);
+  const faces = [[1, 2, 3]];
+  let nextNode = 4;
+
+  while (nextNode <= totalNodes && faces.length > 0) {
+    const [first, second, third] = faces.shift();
+    const nodeId = nextNode;
+    nextNode += 1;
+    graph.set(nodeId, new Set());
+
+    for (const target of [first, second, third]) {
+      graph.get(nodeId).add(target);
+      graph.get(target).add(nodeId);
+    }
+
+    faces.push([first, second, nodeId]);
+    faces.push([second, third, nodeId]);
+    faces.push([third, first, nodeId]);
+  }
+
+  return graph;
+}
+
+export function createErdosRenyiGraph(
+  nodeCount,
+  edgeProbability = 0.08,
+  random = Math.random,
+) {
+  const nodeIds = Array.from({ length: nodeCount }, (_, index) => index + 1);
+  const graph = createGraph(nodeIds, []);
+  const probability = Math.min(1, Math.max(0, edgeProbability));
+
+  for (let source = 1; source <= nodeCount; source += 1) {
+    for (let target = source + 1; target <= nodeCount; target += 1) {
+      if (random() <= probability) {
+        graph.get(source).add(target);
+        graph.get(target).add(source);
+      }
+    }
+  }
+
+  return graph;
+}
+
 export function parseEdgeCsv(csvText) {
   const edges = [];
   const lines = csvText.trim().split(/\r?\n/);

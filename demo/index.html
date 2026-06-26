@@ -52,6 +52,8 @@
               <select id="network-model">
                 <option value="small-world">Small-world</option>
                 <option value="scale-free">Scale-free</option>
+                <option value="apollonian">Apollonian</option>
+                <option value="erdos-renyi">Erdős–Rényi random</option>
                 <option value="school">School community 01</option>
               </select>
             </label>
@@ -65,6 +67,21 @@
                 max="84"
                 step="1"
                 value="42"
+              />
+            </label>
+
+            <label id="network-density-field" class="field" hidden>
+              <span>
+                Network density
+                <output id="network-density-output">8%</output>
+              </span>
+              <input
+                id="network-density"
+                type="range"
+                min="6"
+                max="20"
+                step="1"
+                value="8"
               />
             </label>
 
@@ -127,9 +144,15 @@
                 <p class="toolbar-label">Live network</p>
                 <h2 id="network-title">Small-world network</h2>
               </div>
-              <div class="round-badge">
-                <span>ROUND</span>
-                <strong id="round-value">00</strong>
+              <div class="toolbar-actions">
+                <label class="autoplay-toggle">
+                  <input id="auto-run" type="checkbox" checked />
+                  <span>Auto-run</span>
+                </label>
+                <div class="round-badge">
+                  <span>ROUND</span>
+                  <strong id="round-value">00</strong>
+                </div>
               </div>
             </div>
 

@@ -1,4 +1,6 @@
 import {
+  createApollonianGraph,
+  createErdosRenyiGraph,
   createScaleFreeGraph,
   createSeededRandom,
   createSmallWorldGraph,
@@ -9,7 +11,11 @@ import {
 } from "./simulation.mjs";
 
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+const AUTO_PLAY_DELAY_MS = 420;
+const PLAYBACK_BASE_DELAY_MS = 1620;
 const NETWORK_LABELS = {
+  apollonian: "Apollonian network",
+  "erdos-renyi": "Erdős–Rényi random network",
   "small-world": "Small-world network",
   "scale-free": "Scale-free network",
   school: "School community 01",
@@ -19,6 +25,9 @@ const elements = {
   networkModel: document.querySelector("#network-model"),
   nodeCount: document.querySelector("#node-count"),
   nodeCountOutput: document.querySelector("#node-count-output"),
+  networkDensityField: document.querySelector("#network-density-field"),
+  networkDensity: document.querySelector("#network-density"),
+  networkDensityOutput: document.querySelector("#network-density-output"),
   hopCount: document.querySelector("#hop-count"),
   probability: document.querySelector("#probability"),
   probabilityOutput: document.querySelector("#probability-output"),
@@ -32,6 +41,7 @@ const elements = {
   edges: document.querySelector("#edges"),
   nodes: document.querySelector("#nodes"),
   graphMessage: document.querySelector("#graph-message"),
+  autoRun: document.querySelector("#auto-run"),
   resetButton: document.querySelector("#reset-button"),
   stepButton: document.querySelector("#step-button"),
   playButton: document.querySelector("#play-button"),
@@ -61,6 +71,7 @@ const state = {
   result: null,
   frameIndex: 0,
   timer: null,
+  autoTimer: null,
   loading: false,
 };
 
@@ -93,6 +104,12 @@ function bestOriginator(graph, victim) {
     (left, right) =>
       (graph.get(right)?.size ?? 0) - (graph.get(left)?.size ?? 0) || left - right,
   )[0];
+}
+
+function updateModelControls() {
+  const model = elements.networkModel.value;
+  elements.nodeCount.disabled = model === "school";
+  elements.networkDensityField.hidden = model !== "erdos-renyi";
 }
 
 function populateNodeSelections() {
@@ -136,10 +153,24 @@ async function loadGraph() {
         throw new Error("The school network data could not be loaded.");
       }
       state.graph = parseEdgeCsv(await response.text());
+    } else if (model === "apollonian") {
+      state.graph = createApollonianGraph(nodeCount);
+    } else if (model === "erdos-renyi") {
+      state.graph = createErdosRenyiGraph(
+        nodeCount,
+        Number(elements.networkDensity.value) / 100,
+        random,
+      );
     } else if (model === "scale-free") {
       state.graph = createScaleFreeGraph(nodeCount, 2, random);
     } else {
       state.graph = createSmallWorldGraph(nodeCount, 4, 0.2, random);
+    }
+
+    if (graphEdges(state.graph).length === 0) {
+      throw new Error(
+        "The generated network has no edges. Increase density or change seed.",
+      );
     }
 
     state.victim = highestDegreeNode(state.graph);
@@ -173,6 +204,7 @@ function prepareSimulation() {
   elements.graphMessage.hidden = true;
   renderGraph();
   renderFrame();
+  scheduleAutoPlayback();
 }
 
 function createRadialPositions(graph, centerNode) {
@@ -495,20 +527,48 @@ function stepSimulation() {
   }
 }
 
+function playbackDelay() {
+  return Math.max(180, PLAYBACK_BASE_DELAY_MS - Number(elements.speed.value));
+}
+
+function clearAutoPlayback() {
+  if (state.autoTimer) {
+    window.clearTimeout(state.autoTimer);
+    state.autoTimer = null;
+  }
+}
+
+function scheduleAutoPlayback() {
+  clearAutoPlayback();
+  if (!elements.autoRun.checked || !state.result) {
+    return;
+  }
+
+  state.autoTimer = window.setTimeout(() => {
+    state.autoTimer = null;
+    if (
+      elements.autoRun.checked &&
+      state.result &&
+      state.frameIndex < state.result.frames.length - 1
+    ) {
+      startPlayback();
+    }
+  }, AUTO_PLAY_DELAY_MS);
+}
+
 function startPlayback() {
+  clearAutoPlayback();
   if (state.timer || state.frameIndex >= state.result.frames.length - 1) {
     return;
   }
   elements.playLabel.textContent = "Pause";
   elements.playButton.querySelector(".play-icon").textContent = "Ⅱ";
   elements.simulationStatus.textContent = "Running";
-  state.timer = window.setInterval(
-    stepSimulation,
-    1620 - Number(elements.speed.value),
-  );
+  state.timer = window.setInterval(stepSimulation, playbackDelay());
 }
 
 function stopPlayback() {
+  clearAutoPlayback();
   if (state.timer) {
     window.clearInterval(state.timer);
     state.timer = null;
@@ -536,6 +596,10 @@ elements.nodeCount.addEventListener("input", () => {
   elements.nodeCountOutput.value = elements.nodeCount.value;
   setRangeProgress(elements.nodeCount);
 });
+elements.networkDensity.addEventListener("input", () => {
+  elements.networkDensityOutput.value = `${elements.networkDensity.value}%`;
+  setRangeProgress(elements.networkDensity);
+});
 elements.probability.addEventListener("input", () => {
   elements.probabilityOutput.value = `${elements.probability.value}%`;
   setRangeProgress(elements.probability);
@@ -550,8 +614,23 @@ elements.speed.addEventListener("input", () => {
     startPlayback();
   }
 });
+elements.autoRun.addEventListener("change", () => {
+  if (!state.result) {
+    return;
+  }
+  if (elements.autoRun.checked) {
+    if (state.frameIndex >= state.result.frames.length - 1) {
+      state.frameIndex = 0;
+      renderFrame();
+    }
+    scheduleAutoPlayback();
+  } else {
+    stopPlayback();
+    renderFrame();
+  }
+});
 elements.networkModel.addEventListener("change", () => {
-  elements.nodeCount.disabled = elements.networkModel.value === "school";
+  updateModelControls();
   loadGraph();
 });
 elements.hopCount.addEventListener("change", prepareSimulation);
@@ -573,10 +652,12 @@ elements.playButton.addEventListener("click", togglePlayback);
 
 for (const input of [
   elements.nodeCount,
+  elements.networkDensity,
   elements.probability,
   elements.speed,
 ]) {
   setRangeProgress(input);
 }
 
+updateModelControls();
 loadGraph();
